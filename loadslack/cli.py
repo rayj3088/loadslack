@@ -5,7 +5,6 @@ LoadSlack command-line interface.
   loadslack waste  [--db loadslack-receipts.db]         Print the waste report
   loadslack verify [--db loadslack-receipts.db]         Check receipt-chain integrity
   loadslack queue  [--db loadslack-queue.db]            Show deferral-queue stats
-  loadslack upgrade                                    LoadSlack Pro upgrade flow
 """
 import argparse
 import json
@@ -14,7 +13,6 @@ import sys
 
 from .ledger import Ledger
 from .deferq import DeferQueue
-from .profiles import License
 from .sidechain import Sidechain
 from .signal import StaticSource
 
@@ -42,8 +40,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     queue = sub.add_parser("queue", help="Show durable deferral-queue stats")
     queue.add_argument("--db", default="loadslack-queue.db")
-
-    sub.add_parser("upgrade", help="LoadSlack Pro upgrade flow")
 
     sub.add_parser("demo", help="Run a self-contained simulated grid-stress walkthrough")
 
@@ -98,16 +94,6 @@ def cmd_queue(args) -> int:
     return 0
 
 
-def cmd_upgrade(args) -> int:
-    lic = License.from_env()
-    print("--- LoadSlack Pro ---")
-    print(json.dumps(lic.status(), indent=2, default=str))
-    if not lic.active:
-        print("\nNo active licence found. Set LOADSLACK_LICENSE_KEY in your "
-             "environment or .env file. Free-tier features remain fully active.")
-    return 0
-
-
 def cmd_demo(args) -> int:
     from .demo import run as run_demo
     return run_demo()
@@ -122,7 +108,7 @@ def main() -> None:
         sys.exit(0)
 
     handlers = {"serve": cmd_serve, "waste": cmd_waste, "verify": cmd_verify,
-               "queue": cmd_queue, "upgrade": cmd_upgrade, "demo": cmd_demo}
+               "queue": cmd_queue, "demo": cmd_demo}
     sys.exit(handlers[args.command](args))
 
 

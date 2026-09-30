@@ -6,7 +6,7 @@ from .deferq import DeferQueue
 from .ledger import Ledger, Attestation
 from .verify import LatencyLedger, in_holdout
 from .store import Inflight, MemoryBackend, SqliteBackend
-from .profiles import License, ProfileStore, ModelProfile, FREE, PAID
+from .profiles import ProfileStore, ModelProfile
 from .compressor import Compressor, CompressorConfig
 from .ladder import Ladder, RequestClass
 
@@ -16,7 +16,7 @@ __all__ = [
     "DeferQueue", "Ledger", "Attestation",
     "LatencyLedger", "in_holdout",
     "Inflight", "MemoryBackend", "SqliteBackend",
-    "License", "ProfileStore", "ModelProfile", "FREE", "PAID",
+    "ProfileStore", "ModelProfile",
     "Compressor", "CompressorConfig",
     "Ladder", "RequestClass",
 ]

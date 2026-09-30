@@ -1,7 +1,7 @@
 """
 The driver.
 
-    sc = Sidechain()                        # free tier, calm grid
+    sc = Sidechain()                        # calm grid by default
     d  = sc.before(site="support-bot", prompt=p, messages=m, max_tokens=800)
     if d.served:                            # duplicate work, answered locally
         return d.response
@@ -14,8 +14,7 @@ The rot engine removes work that buys nothing -- quality-neutral by
 construction. The verifier keeps a permanent bypass slice and proves,
 continuously, that governed traffic is indistinguishable from ungoverned. The
 latency ledger enforces that we only spend milliseconds we already earned. All
-three are free, because they are the giveaway and because they are what makes
-the thing installable at all.
+three are always on, because they are what make the thing installable at all.
 
 The grid signal is the sidechain input, and it modulates ONE thing: effort --
 how hard the rot engine looks. It never touches quality, never swaps a model,
@@ -23,20 +22,19 @@ never trims a reasoning budget. Higher grid stress means wider near-duplicate
 windows, deeper pruning, longer coalescing. You buy elimination with detection
 cycles.
 
-That coupling, per-model calibration, and the countersigned receipt are the
-paid tier. When a licence lapses the driver keeps working and keeps proving
-itself. It simply stops following the grid.
+That coupling and the per-model calibration are always on.
 """
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Optional
 
 from .compressor import Compressor, CompressorConfig
 from .ledger import Ledger
-from .profiles import License, ProfileStore
+from .profiles import ProfileStore
 from .rot import RotConfig, RotEngine, RotResult
 from .store import CacheBackend
 from .signal import GridSignal, SignalSource, StaticSource
@@ -73,7 +71,6 @@ class Turn:
 
 class Sidechain:
     def __init__(self, source: Optional[SignalSource] = None,
-                 license: Optional[License] = None,
                  rot_config: Optional[RotConfig] = None,
                  holdout_fraction: float = 0.03,
                  ledger_path: str = "loadslack-receipts.db",
@@ -81,7 +78,6 @@ class Sidechain:
                  profiles_path: str = "",
                  backend: Optional[CacheBackend] = None,
                  window_s: float = 3600.0):
-        self.license = license or License.from_env()
         self.source = source or StaticSource(0.0)
         self.rot = RotEngine(rot_config or RotConfig(effort=BASE_EFFORT),
                              backend=backend)
@@ -89,7 +85,7 @@ class Sidechain:
         self.compressor = Compressor(compressor or CompressorConfig(
             threshold=0.45, ratio=4.0, attack_s=45, release_s=900))
         self.profiles = ProfileStore(
-            profiles_path or self.license.profiles_path or None)
+            profiles_path or os.environ.get("LOADSLACK_PROFILES") or None)
         self.ledger = Ledger(ledger_path)
         self._sig = GridSignal()
 
@@ -100,8 +96,6 @@ class Sidechain:
             self._sig = self.source.read()
         except Exception:
             self._sig = GridSignal(stress=0.0, stale=True)  # fail open
-        if not self.license.gate("grid_sidechain"):
-            return BASE_EFFORT, 0.0
         r = self.compressor.update(self._sig, now=now)
         # Normalise against the curve's own maximum so effort actually reaches
         # 1.0 at full stress. Ratio and threshold shape the RAMP; they should
@@ -121,7 +115,7 @@ class Sidechain:
         effort, stress = self._effort(now)
         held = self.verifier.assign(key or f"{site}:{prompt[:256]}")
 
-        if self.license.gate("per_model_profiles") and request:
+        if request:
             p = self.profiles.get(request.get("model", ""))
             self.rot.cfg.max_hamming = p.near_dup_max_hamming
 
@@ -155,8 +149,7 @@ class Sidechain:
                 "served_from": res.served_from,
                 "saved_tokens": res.saved_tokens,
                 "findings": [f.kind for f in res.findings],
-                "refusals": res.refusals,
-                "tier": self.license.tier})
+                "refusals": res.refusals})
 
         return Turn(site, prompt, req, res, False, effort, stress)
 
@@ -179,10 +172,9 @@ class Sidechain:
 
     def state(self) -> dict:
         return {
-            "licence": self.license.status(),
             "grid": {"stress": round(self._sig.stress, 4),
                      "region": self._sig.region, "stale": self._sig.stale,
-                     "coupled": self.license.gate("grid_sidechain")},
+                     "coupled": True},
             "effort": round(self.rot.cfg.effort, 3),
             "rot": self.rot.report(),
             "proof": self.verifier.proof(),

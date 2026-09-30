@@ -24,7 +24,7 @@ No wheels to audit, no transitive dependencies, nothing to review but the
 Python standard library and this repo.
 
 ```bash
-loadslack waste      # rot elimination + live proof, free vs paid tier
+loadslack waste      # rot elimination + live proof
 loadslack demo       # a simulated ISO curtailment day
 ```
 
@@ -114,8 +114,8 @@ coalescing. It never swaps a model, never trims reasoning, never touches
 quality.
 
 ```
-free tier,  calm or stressed grid   effort 0.20   20.9% of calls eliminated
-paid tier,  stress 0.92             effort 0.88   57.6% of calls eliminated
+calm grid,  stress 0.00             effort 0.20   20.9% of calls eliminated
+stressed,   stress 0.92             effort 0.88   57.6% of calls eliminated
 ```
 
 ## The latency invariant
@@ -125,29 +125,18 @@ tracks the balance and refuses to spend from a deficit, so you only ever spend
 milliseconds you already earned. `invariant_holds: true` is checkable at
 runtime.
 
-## Free vs paid
+## Calibration profiles
 
-| free | paid |
-|---|---|
-| rot elimination | grid sidechain |
-| holdout verifier | per-model calibration bundle |
-| latency ledger | countersigned receipts |
-| waste report | |
+Everything is free and always on: rot elimination, the holdout verifier, the latency ledger, the waste report, grid coupling and receipts.
 
-A lapsed licence **degrades, it does not break**. The driver keeps eliminating
-waste and keeps proving it did no harm. It simply stops following the grid.
-
-Why a subscription and not a purchase: the waste profile is model-specific and
-models turn over constantly. Every release changes context economics,
-tokenizer behaviour, prefix-cache granularity. What recurs is not access to a feature — access can be
-copied — it is **calibration that decays**.
+Waste behaviour differs by model, so you can load a per-model calibration file (`LOADSLACK_PROFILES=/path/to/profiles.json`). Without one, the driver uses conservative generic baselines and says so in `/state`. Profiles older than about 90 days are flagged as stale.
 
 ## Using it
 
 ```python
 from loadslack import Sidechain
 
-sc = Sidechain()                                   # free tier
+sc = Sidechain()                                   # calm grid by default
 t = sc.before("support-bot", prompt, messages=msgs, max_tokens=800)
 if t.served:
     return t.response                              # duplicate work, answered locally
@@ -162,7 +151,7 @@ print(sc.datasheet())                              # the live proof line
 | endpoint | what it is for |
 |---|---|
 | `GET /proof` | the live claim, in one line, for a datasheet or a review |
-| `GET /state` | effort, elimination counters, cache size, licence tier |
+| `GET /state` | effort, elimination counters, cache size |
 | `GET /metrics` | Prometheus: effort, eliminations, refusals, TTFT delta, verdict |
 | `POST /signal` | push grid stress or a curtailment order (or wire OpenADR to it) |
 
