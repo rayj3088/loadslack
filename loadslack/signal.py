@@ -62,7 +62,7 @@ class SignalSource:
 
 
 class StaticSource(SignalSource):
-    """A fixed stress value that never changes on its own. The free-tier
+    """A fixed stress value that never changes on its own. The
     default is stress=0.0 -- calm, so the driver never ducks anything until
     something real is wired in."""
     def __init__(self, stress: float = 0.0, region: str = "local"):
