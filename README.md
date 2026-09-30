@@ -1,5 +1,7 @@
 # loadslack
 
+> **Experimental.** Early-stage. The no-quality-loss claim rests on the design and on simulations, so verify it on your own traffic before relying on it in production.
+
 A sidechain compressor for AI compute.
 
 Three claims, stacked. **One:** there is waste in the token stream — duplicate
